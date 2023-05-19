@@ -1,22 +1,23 @@
 --[[
-	##########################################################
-	# @project: bengines
-	# @author: brzys <brzysiekdev@gmail.com>
-	# @filename: engine_c.lua
-	# @description: new engine sounds & RPM simulation
-	# All rights reserved.
-	##########################################################
+    ##########################################################
+    # @project: bengines
+    # @author: brzys <brzysiekdev@gmail.com>
+    # @filename: engine_c.lua
+    # @description: new engine sounds & RPM simulation
+    # All rights reserved.
+    ##########################################################
 --]]
 local fSteerLimit = 0
 local fLastSteerLimit = 0
 local iLastSteerPush = 0
 ENGINE_ENABLED = true
 ENGINE_VOLUME_MASTER = 1 -- volume multiplier
-ENGINE_VOLUME_THROTTLE_BOOST = 2.5	 -- boosting engine volume if we use throttle
+ENGINE_VOLUME_THROTTLE_BOOST = 2.5   -- boosting engine volume if we use throttle
 ENGINE_SOUND_FADE_DIMENSION = 6969 -- dimension for unloading sounds
 ENGINE_SOUND_DISTANCE = 200 -- max distance
-GUIDEngine = "{2ee8c157-3303-46ff-a8bf-59a95bc32dcf}"
+EGNINE_EVENT_FMOD_DEFAULT = "{0c8363b4-23af-4f9c-af4b-0951bfd37d84}"
 -- setFmodParameterByName(eventFMOD,"RPM",600)
+dummyengine = createMarker (0, 0, 0, "cylinder", .5, 255, 0, 0, 200)
 DEBUG = true
 
 -- offsets of exhaust flames
@@ -27,7 +28,7 @@ local als = {
     -- },
 
 
-}
+    }
 
 local streamedVehicles = {}
 local pi = math.pi
@@ -250,7 +251,7 @@ function updateEngines(dt)
                         -- data.sounds[4] = playSound3D("sounds/turbo.wav", x, y, z, true)
 
                         -- for i=1, 3 do
-                        -- 	setSoundEffectEnabled(data.sounds[i], "compressor", true)
+                        --  setSoundEffectEnabled(data.sounds[i], "compressor", true)
                         -- end
                     else
                         -- engine
@@ -296,8 +297,6 @@ function updateEngines(dt)
                             vol = vol/2
                         end
 
-                        --setSoundVolume(data.sounds[3], math.max(0, vol))
-                        --setSoundSpeed(data.sounds[3], rpm/(engine.maxRPM*0.925))
 
                         svol[4] = data.turboValue
 
@@ -307,8 +306,6 @@ function updateEngines(dt)
                             vol = vol*ENGINE_VOLUME_THROTTLE_BOOST
                         end
 
-                        --setSoundVolume(data.sounds[4], math.max(0, vol*0.9))
-                        --setSoundSpeed(data.sounds[4], svol[4]+0.8)
 
                         if ((changedGear == "up" and data.prevTurboValue > 0.2) or (not data.throttle and data.prevTurboValue > 0.2)) and engine.turbo_shifts then
                             local sound = 1
@@ -326,9 +323,9 @@ function updateEngines(dt)
 
                         if data.activeALS and not isElement(data.sounds[6]) then
                             data.sounds[6] = playSound3D("sounds/als"..math.random(1, 13)..".wav", x, y, z, false)
-                            --setSoundVolume(data.sounds[6], 0.8)
-                            --setSoundSpeed(data.sounds[6], 1.1)
-                            --setSoundEffectEnabled(data.sounds[6], "reverb", true)
+                            setSoundVolume(data.sounds[6], 0.8)
+                            setSoundSpeed(data.sounds[6], 1.1)
+                            setSoundEffectEnabled(data.sounds[6], "reverb", true)
                             setSoundEffectEnabled(data.sounds[6], "echo", true)
                             setSoundEffectEnabled(data.sounds[6], "compressor", true)
 
@@ -370,86 +367,31 @@ function updateEngines(dt)
                         end
                     end
 
+                    local myVooool = tonumber(svol[3]) or -1
+                    myVooool = math.max(0, math.min(1, myVooool))
+                    local eventVeh,elemVeh = (getElementData(vehicle, "vehicle:engine").engineFmodType or EGNINE_EVENT_FMOD_DEFAULT),tostring(vehicle)
+                    if IsFmodCoreCreated() and IsFmodStudioCreated() then
+                        setFmodParameterForElement(elemVeh,eventVeh,"RPM",rpm)
+                        setFmodParameterForElement(elemVeh,eventVeh,"Load",myVooool)
+                        local listDummy = {"engine","exhaust"}
+
+                        local x, y, z = getVehicleDummyPosition (vehicle, listDummy[1])
+                        local x, y, z = getPositionFromElementOffset(vehicle,x, y, z)
+                        setElementPosition(dummyengine,Vector3(x, y, z))
+                        setFmodEvent3DPositionForElement(elemVeh,eventVeh,Vector3(x, y, z))
+
+                    end
 
 
                     if DEBUG and vehicle == myVehicle then
                         local x,y = guiGetScreenSize()
-                        local myVooool = tonumber(svol[3]) or -1
-                        myVooool = math.max(0, math.min(1, myVooool))
-
-
-
-
-
-                        local theVeh = getPedOccupiedVehicle(localPlayer)
-                        local lrpm = rpm
                         local  dataFnod =
                             {
-                                data = {["Элемент машины"] = tostring(theVeh),["Индекс двигателя"] = engine.name,["Обороты"]=math.ceil(lrpm),["Нагрузка на двигатель"]=myVooool,["Турбина"]= tonumber(svol[4])}
+                                data = {["событие"] = engine.engineFmodType or EGNINE_EVENT_FMOD_DEFAULT ,["Элемент машины"] = tostring(getPedOccupiedVehicle(localPlayer)),["Индекс двигателя"] = engine.name,["Обороты"]=math.ceil(rpm),["Нагрузка на двигатель"]=myVooool,["Турбина"]= tonumber(svol[4])}
                             }
-                        dxDrawText(''..inspect(dataFnod.data), x/1.5, y/1.2, x-50, y,tocolor ( 255,255,255, 225 ),1,"default","left",nil,false,false,false)
-                        -- if getElementData(localPlayer,"fmod") == true then
-
-
-                            -- if theVeh then
-                            if IsFmodCoreCreated() and IsFmodStudioCreated() then
-                            setFmodEventParameter(GUIDEngine,"RPM",rpm)
-                            setFmodEventParameter(GUIDEngine,"Load",myVooool)
-                            end
-                                -- updateFmodParameterByName(GUIDEngine,"rpm",rpm)
-                            --     updateFmodParameterByName(GUIDEngine,"turbo",myVooool/1.6)
-                            --     updateFmodParameterByName(GUIDEngine,"load",myVooool/4)
-                            -- end
-
-                        -- end
-
-
-
-                        -- local steer_rotation = interpolateBetween( fLastSteerLimit, 0, 0, fSteerLimit, 0, 0, (getTickCount()-iLastSteerPush) / 1000, "OutQuad" )
-                        -- setVehicleComponentRotation( theVeh, "rule", 0, steer_rotation or 0, 0 )
-
-                        -- local left_state = getPedControlState("vehicle_left")
-                        -- local right_state = getPedControlState( "vehicle_right")
-                        -- local changed = false
-
-                        -- if left_state and not right_state then
-                        -- 	fLastSteerLimit = steer_rotation
-                        -- 	iLastSteerPush = getTickCount()
-                        -- 	fSteerLimit = -(280+90)
-                        -- 	changed = true
-                        -- end
-                        -- if right_state and not left_state then
-                        -- 	fLastSteerLimit = steer_rotation
-                        -- 	iLastSteerPush = getTickCount()
-                        -- 	fSteerLimit = (280+90)
-                        -- 	changed = true
-                        -- end
-
-                        -- if not left_state and not right_state and not changed then
-                        -- 	fLastSteerLimit = steer_rotation
-                        -- 	iLastSteerPush = getTickCount()
-                        -- 	fSteerLimit = 0
-                        -- end
-
-                        --outputConsole(inspect(getVehicleComponents(theVeh)))
-                        -- local t = "Состояние\nПередача: "..tostring(data.gear).."/"..tostring(#gearRatios).."\n"
-                        -- for k, v in ipairs(gearRatios) do
-                        -- 	t = t.."Передача "..tostring(k)..": "..v.."\n"
-                        -- end
-                        -- dxDrawText(t, x/2+800, y/2+125)
-
+                        dxDrawText(''..inspect(dataFnod.data), x/1.75, y/1.175, x-50, y,tocolor ( 255,255,255, 225 ),1,"default","left",nil,false,false,false)
                     end
                 else
-
-                    if data.sounds then
-                        for k, v in ipairs(data.sounds) do
-                            if isElement(v) then
-                                destroyElement(v)
-                            end
-                        end
-                        data.sounds = false
-                    end
-
                     data.rpm = 0
                     data.gear = -1
                     data.previousGear = 0
@@ -459,38 +401,45 @@ function updateEngines(dt)
         end
     end
 end
-
-
-
-
-
-
-
 addEventHandler("onClientPreRender", root, updateEngines)
+
+addFmodSteamer = function(vehicle)
+    local eventVeh,elemVeh = (getElementData(vehicle, "vehicle:engine").engineFmodType or EGNINE_EVENT_FMOD_DEFAULT),tostring(vehicle)
+
+    if (isEventInstanceExists(elemVeh,eventVeh) == false) then
+        -- iprint('у машины ',elemVeh," нет эвента")
+        if (loadFmodEventForElement(elemVeh,eventVeh) == true) then
+            iprint(elemVeh,eventVeh,playFmodEventForElement(elemVeh,eventVeh))
+        else
+            iprint("[Ошибка загрузки эвента]: ",elemVeh,eventVeh)
+        end
+    end
+end
+
+deleteFmodStreamer = function(vehicle)
+    local eventVeh,elemVeh = (getElementData(vehicle, "vehicle:engine").engineFmodType or EGNINE_EVENT_FMOD_DEFAULT),tostring(vehicle)
+    if (isEventInstanceExists(elemVeh,eventVeh) == true) then
+        iprint("stream release - ",elemVeh,(releaseEventInstanceForElement(elemVeh,eventVeh)))
+    end
+end
 
 function streamInVehicle(vehicle)
     if not streamedVehicles[vehicle] then
         if isElement(vehicle) and getElementData(vehicle, "vehicle:engine") then
             streamedVehicles[vehicle] = {}
-            addEventHandler("onClientElementDestroy", vehicle, function()
+            addFmodSteamer(vehicle)
+
+            addEventHandler("onClientElementDestroy", vehicle, function() -- деиницализировать эвент иначе утечка при перезапусках
                 streamOutVehicle(source)
             end)
         end
     end
 end
 
-function streamOutVehicle(vehicle)
+function streamOutVehicle(vehicle) -- релизнуть эвент
     if streamedVehicles[vehicle] then
-        if streamedVehicles[vehicle].sounds then
-            for k, v in ipairs(streamedVehicles[vehicle].sounds) do
-                if isElement(v) then
-                    destroyElement(v)
-                end
-            end
-        end
-
-        streamedVehicles[vehicle] = nil
-    end
+        deleteFmodStreamer(vehicle)
+end
 end
 
 function toggleGTAEngineSounds(bool)
@@ -574,10 +523,12 @@ function toggleEngines(bool)
     if bool == true then
         for k, v in ipairs(getElementsByType("vehicle", root, true)) do
             streamInVehicle(v)
+            addFmodSteamer(v) -- добавляем эвент пропарсив все машины
         end
     else
         for vehicle, data in pairs(streamedVehicles) do
             streamOutVehicle(vehicle)
+            deleteFmodStreamer(vehicle) --
         end
         streamedVehicles = {}
     end
@@ -599,6 +550,7 @@ addEventHandler("onClientElementStreamIn", root,
     function()
         if getElementType(source) == "vehicle" then
             streamInVehicle(source)
+            addFmodSteamer(source)
         end
     end
 )
@@ -621,15 +573,8 @@ end)
 
 addEventHandler("onClientResourceStop", resourceRoot, function()
     for k, v in pairs(streamedVehicles) do
-        if v.sounds and #v.sounds > 0 then
-            for _, sound in pairs(v.sounds) do
-                if isElement(sound) then
-                    destroyElement(sound)
-                end
-            end
-        end
+        deleteFmodStreamer(k)
     end
-
     toggleGTAEngineSounds(true)
 end)
 

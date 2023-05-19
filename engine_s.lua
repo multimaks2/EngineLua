@@ -140,6 +140,19 @@ ENGINE_DATA = {
 			soundPack="casual7",
 			fuel="diesel",
 		},
+
+		["6.0"] = {
+			idleRPM=600,
+			maxRPM=3000,
+			soundPack="casual2",
+			fuel="petrol",
+			engineFmodType = "{2ee8c157-3303-46ff-a8bf-59a95bc32dcf}",
+			turbo = true,
+			als = true,
+			shiftDownRPM=1800,
+			shiftUpRPM=2800,
+		},
+
 	},
 	
 	-- muscle vehicles
@@ -244,6 +257,7 @@ VEHICLE_ENGINES = {
 	[414] = "1.2", -- mule 
 	
 	-- sport
+	[400] = "6.0",
 	[596] = "2.0", -- police LS
 	[598] = "3.9",
 }

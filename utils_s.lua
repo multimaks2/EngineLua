@@ -35,7 +35,7 @@ CLASSES = {
 }
 
 MAX_VELOCITY = {
-	[400] = 100,
+	[400] = 210,
 	[401] = 140,
 	[402] = 178,
 	[404] = 126,
@@ -195,12 +195,11 @@ if getModelHandling then
 		end)	
 	end
 
-	--[[
-	for name, models in pairs(VEHICLES_TYPES) do 
-		outputChatBox("Najgorszy z "..name..": "..models[#models])
-		outputChatBox("Najlepszy z "..name..": "..models[1])
-	end 
-	--]]
+	-- for name, models in pairs(VEHICLES_TYPES) do 
+	-- 	outputChatBox("Najgorszy z "..name..": "..models[#models])
+	-- 	outputChatBox("Najlepszy z "..name..": "..models[1])
+	-- end 
+
 	
 	function getBestVehicleClassByType(type)
 		if type then 
